@@ -1,0 +1,23 @@
+config:
+  target: "http://localhost:3000"
+  phases:
+    # Quick smoke test
+    - duration: 10
+      arrivalRate: 5
+      name: "Smoke test"
+
+  defaults:
+    headers:
+      Authorization: "Bearer {{ $env.TEST_TOKEN }}"
+
+  ensure:
+    p99: 1000   # Relaxed for local testing
+    maxErrorRate: 5
+
+scenarios:
+  - name: "Quick search"
+    flow:
+      - get:
+          url: "/search?q=test"
+      - get:
+          url: "/search/health"

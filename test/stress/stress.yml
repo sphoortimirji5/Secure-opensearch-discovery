@@ -1,0 +1,57 @@
+config:
+  target: "http://localhost:3000"
+  phases:
+    # Warm-up phase
+    - duration: 30
+      arrivalRate: 5
+      name: "Warm up"
+    # Ramp up
+    - duration: 60
+      arrivalRate: 10
+      rampTo: 50
+      name: "Ramp up"
+    # Sustained load
+    - duration: 120
+      arrivalRate: 50
+      name: "Sustained load"
+    # Spike test
+    - duration: 30
+      arrivalRate: 100
+      name: "Spike"
+    # Cool down
+    - duration: 30
+      arrivalRate: 10
+      name: "Cool down"
+
+  defaults:
+    headers:
+      Authorization: "Bearer {{ $env.TEST_TOKEN }}"
+
+  # Performance thresholds
+  ensure:
+    p99: 500    # 99th percentile < 500ms
+    p95: 200    # 95th percentile < 200ms
+    maxErrorRate: 1  # Max 1% error rate
+
+scenarios:
+  - name: "Search flow"
+    weight: 70
+    flow:
+      - get:
+          url: "/search?q=violation"
+      - think: 1
+      - get:
+          url: "/search?q=enrollment"
+      - think: 2
+
+  - name: "Exact email lookup"
+    weight: 20
+    flow:
+      - get:
+          url: "/search?email=john.doe@example.com"
+
+  - name: "Health check"
+    weight: 10
+    flow:
+      - get:
+          url: "/search/health"
