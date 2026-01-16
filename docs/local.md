@@ -36,36 +36,26 @@ AWS_REGION=us-east-1
 JWT_ISSUER=http://localhost:3000  # Local mock issuer
 ```
 
-> [!CAUTION]
-> **Do not use `SKIP_AUTH=true`** — this trains unsafe habits. Instead, use mock JWTs for local development.
-
 ### Mock JWT Setup
 
 Generate deterministic test tokens for local development:
 
-```typescript
-// scripts/generate-local-jwt.ts
-import * as jwt from 'jsonwebtoken';
-
-const LOCAL_SECRET = 'local-dev-secret-do-not-use-in-prod';
-
-export const mockAuditorToken = jwt.sign(
-  { sub: 'local-auditor', 'cognito:groups': ['auditor'] },
-  LOCAL_SECRET,
-  { issuer: 'http://localhost:3000', expiresIn: '24h' }
-);
-
-export const mockComplianceToken = jwt.sign(
-  { sub: 'local-compliance', 'cognito:groups': ['compliance_lead'] },
-  LOCAL_SECRET,
-  { issuer: 'http://localhost:3000', expiresIn: '24h' }
-);
+```bash
+# Available token types
+npm run token:auditor      # Internal auditor (base fields)
+npm run token:compliance   # Internal compliance lead (+ status_notes)
+npm run token:admin        # Internal admin (can reindex)
+npm run token:external     # External location admin (tenant-isolated)
 ```
 
 ```bash
 # Use in curl
 curl "http://localhost:3000/search?q=violation" \
   -H "Authorization: Bearer $(npm run --silent token:auditor)"
+
+# Admin reindex
+curl -X POST "http://localhost:3000/admin/reindex" \
+  -H "Authorization: Bearer $(npm run --silent token:admin)"
 ```
 
 ---

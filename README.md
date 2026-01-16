@@ -28,7 +28,8 @@ Extract → Redact → Index pipeline that creates a searchable, PII-protected O
 - **Source of Truth**: DynamoDB (member records)
 - **Search Layer**: OpenSearch with fuzzy/n-gram analysis
 - **Sync**: DynamoDB Streams → Lambda Indexer → OpenSearch
-- **PII Protection**: SSN/phone/email redacted before indexing
+- **PII Protection**: Phone/email redacted before indexing
+- **Multi-Tenant**: Internal RCM (RBAC) + External locations (data isolation)
 - **RBAC**: Role-based field filtering (Auditor vs Compliance Lead)
 - **Idempotency**: `member_id` as OpenSearch `_id` (retries are harmless)
 
@@ -63,22 +64,30 @@ src/
 ├── config/
 │   └── config.module.ts         # Environment config with Zod validation
 ├── search/
+│   ├── dto/                     # Request/response DTOs
+│   ├── interfaces/              # SearchQuery, SearchResult types
 │   ├── search.module.ts
 │   ├── search.controller.ts     # GET /search endpoint
 │   ├── search.service.ts        # Query building, source filtering
 │   └── opensearch.provider.ts   # Client factory (local vs AWS)
 ├── members/
+│   ├── interfaces/              # Member type definition
 │   ├── members.module.ts
 │   └── members.repository.ts    # DynamoDB DocumentClient wrapper
 ├── redaction/
 │   ├── redaction.module.ts
 │   └── redaction.service.ts     # PII pattern detection & masking
 ├── auth/
+│   ├── dto/                     # AuthenticatedUserDto
+│   ├── interfaces/              # JwtPayload type
 │   ├── auth.module.ts
 │   ├── jwt.strategy.ts          # Passport JWT validation
 │   └── roles.guard.ts           # RBAC enforcement
 └── indexer/
+    ├── dto/                     # ReindexResultDto
+    ├── interfaces/              # IndexDocument, ValidationError
     ├── indexer.module.ts
+    ├── indexer.controller.ts    # POST /admin/reindex (admin-only)
     └── indexer.service.ts       # Bulk index with redaction
 
 scripts/

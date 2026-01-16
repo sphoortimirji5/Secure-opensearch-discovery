@@ -1,18 +1,47 @@
 /**
- * Seed script for local development
- * Creates DynamoDB table, OpenSearch index, and populates with mock data
+ * @fileoverview Local Development Seed Script
+ *
+ * Bootstraps the local development environment by:
+ * 1. Creating a DynamoDB table for member records
+ * 2. Seeding mock member data into DynamoDB
+ * 3. Creating an OpenSearch index with appropriate mappings
+ * 4. Indexing members into OpenSearch with PII redaction
+ *
+ * @remarks
+ * This script is intended for LOCAL DEVELOPMENT ONLY. It uses dummy credentials
+ * that are only valid for DynamoDB Local. Never run this against production.
+ *
+ * @example
+ * ```bash
+ * npm run seed
+ * ```
  */
 
 import { DynamoDBClient, CreateTableCommand, DescribeTableCommand } from '@aws-sdk/client-dynamodb';
 import { DynamoDBDocumentClient, PutCommand } from '@aws-sdk/lib-dynamodb';
 import { Client } from '@opensearch-project/opensearch';
 
-// Configuration
+/* -------------------------------------------------------------------------- */
+/*                              Configuration                                  */
+/* -------------------------------------------------------------------------- */
+
+/** DynamoDB Local endpoint. Override via DYNAMODB_ENDPOINT env var. */
 const DYNAMODB_ENDPOINT = process.env.DYNAMODB_ENDPOINT || 'http://localhost:8000';
+
+/** OpenSearch node URL. Override via OPENSEARCH_NODE env var. */
 const OPENSEARCH_NODE = process.env.OPENSEARCH_NODE || 'http://localhost:9200';
+
+/** AWS region for DynamoDB client. Override via AWS_REGION env var. */
 const AWS_REGION = process.env.AWS_REGION || 'us-east-1';
 
-// Clients - DynamoDB Local doesn't validate credentials, use dummy values
+/* -------------------------------------------------------------------------- */
+/*                              Client Setup                                   */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * DynamoDB client configured for local development.
+ * Uses dummy credentials as DynamoDB Local doesn't validate them.
+ */
 const dynamoClient = new DynamoDBClient({
     region: AWS_REGION,
     endpoint: DYNAMODB_ENDPOINT,
@@ -21,19 +50,35 @@ const dynamoClient = new DynamoDBClient({
         secretAccessKey: 'local',
     },
 });
+
+/** DynamoDB DocumentClient for high-level operations. */
 const docClient = DynamoDBDocumentClient.from(dynamoClient);
+
+/**
+ * OpenSearch client with TLS verification disabled for local development.
+ * @remarks Production deployments MUST enable certificate verification.
+ */
 const opensearchClient = new Client({ node: OPENSEARCH_NODE, ssl: { rejectUnauthorized: false } });
 
-// Mock data
+/* -------------------------------------------------------------------------- */
+/*                              Mock Data                                      */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * Representative member records for local testing.
+ *
+ * @remarks
+ * These records include intentional PII patterns (phone, email) in the
+ * status_notes field to verify that redaction works correctly during indexing.
+ */
 const mockMembers = [
     {
         member_id: 'mem-001',
         email: 'john.doe@example.com',
         fname: 'John',
         lname: 'Doe',
-        status_notes: 'Enrollment violation reported on 2024-01-15. SSN: 123-45-6789 verified.',
+        status_notes: 'Enrollment violation reported on 2024-01-15. Contact: 555-111-9999.',
         tags: ['tier1', 'active'],
-        ssn_last4: '6789',
         created_at: '2024-01-01T00:00:00Z',
         updated_at: '2024-01-15T00:00:00Z',
     },
@@ -44,7 +89,6 @@ const mockMembers = [
         lname: 'Smith',
         status_notes: 'Account in good standing. Contact: 555-123-4567',
         tags: ['tier2', 'active'],
-        ssn_last4: '1234',
         created_at: '2024-01-02T00:00:00Z',
         updated_at: '2024-01-02T00:00:00Z',
     },
@@ -55,7 +99,6 @@ const mockMembers = [
         lname: 'Wilson',
         status_notes: 'At-risk member. Multiple rule violations noted.',
         tags: ['tier1', 'at-risk'],
-        ssn_last4: '5678',
         created_at: '2024-01-03T00:00:00Z',
         updated_at: '2024-01-10T00:00:00Z',
     },
@@ -66,7 +109,6 @@ const mockMembers = [
         lname: 'Johnson',
         status_notes: 'Premium member since 2020. Email: alice.alt@personal.com',
         tags: ['premium', 'active'],
-        ssn_last4: '9012',
         created_at: '2020-06-15T00:00:00Z',
         updated_at: '2024-01-01T00:00:00Z',
     },
@@ -77,13 +119,22 @@ const mockMembers = [
         lname: 'Brown',
         status_notes: 'Pending compliance review for enrollment discrepancy.',
         tags: ['tier2', 'pending-review'],
-        ssn_last4: '3456',
         created_at: '2024-01-05T00:00:00Z',
         updated_at: '2024-01-12T00:00:00Z',
     },
 ];
 
-// OpenSearch index mappings
+/* -------------------------------------------------------------------------- */
+/*                          OpenSearch Configuration                           */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * OpenSearch index mappings for the 'members' index.
+ *
+ * @remarks
+ * - `member_id` and `email` are keyword fields for exact matching
+ * - `fname`, `lname`, `status_notes` are text fields for full-text search
+ */
 const indexMappings = {
     properties: {
         member_id: { type: 'keyword' },
@@ -95,13 +146,28 @@ const indexMappings = {
     },
 };
 
-// PII redaction patterns
+/* -------------------------------------------------------------------------- */
+/*                              PII Redaction                                  */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * Regular expression patterns for detecting and redacting PII.
+ * Applied to status_notes before indexing to prevent sensitive data leakage.
+ */
 const redactionPatterns = [
-    { regex: /\b\d{3}[-]?\d{2}[-]?\d{4}\b/g, replacement: '[SSN-REDACTED]' },
-    { regex: /\b(\+1[-.\s]?)?(\(?\d{3}\)?[-.\s]?)?\d{3}[-.\s]?\d{4}\b/g, replacement: '[PHONE-REDACTED]' },
+    /** Phone pattern: 555-123-4567, (555) 123-4567, +1-555-123-4567 */
+    { regex: /\b(\+1[-.\\s]?)?(\(?\d{3}\)?[-.\\s]?)?\d{3}[-.\\s]?\d{4}\b/g, replacement: '[PHONE-REDACTED]' },
+
+    /** Email pattern: user@domain.com */
     { regex: /\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b/g, replacement: '[EMAIL-REDACTED]' },
 ];
 
+/**
+ * Applies all redaction patterns to an input string.
+ *
+ * @param input - The string potentially containing PII
+ * @returns The sanitized string with PII replaced by redaction markers
+ */
 function redact(input: string): string {
     let result = input;
     for (const pattern of redactionPatterns) {
@@ -110,6 +176,17 @@ function redact(input: string): string {
     return result;
 }
 
+/* -------------------------------------------------------------------------- */
+/*                              Seed Functions                                 */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * Creates the 'members' DynamoDB table if it doesn't already exist.
+ *
+ * @remarks
+ * Uses PAY_PER_REQUEST billing for local development simplicity.
+ * Production should consider provisioned capacity based on load patterns.
+ */
 async function createDynamoDBTable(): Promise<void> {
     console.log('Creating DynamoDB table...');
 
@@ -118,7 +195,7 @@ async function createDynamoDBTable(): Promise<void> {
         console.log('   Table already exists');
         return;
     } catch {
-        // Table doesn't exist, create it
+        // Table doesn't exist - proceed with creation
     }
 
     await dynamoClient.send(new CreateTableCommand({
@@ -131,6 +208,13 @@ async function createDynamoDBTable(): Promise<void> {
     console.log('   Table created');
 }
 
+/**
+ * Seeds mock member records into DynamoDB.
+ *
+ * @remarks
+ * Records are inserted individually to simulate real write patterns.
+ * Production indexing uses DynamoDB Streams for event-driven sync.
+ */
 async function seedDynamoDB(): Promise<void> {
     console.log('Seeding DynamoDB...');
 
@@ -145,6 +229,13 @@ async function seedDynamoDB(): Promise<void> {
     console.log('   DynamoDB seeded');
 }
 
+/**
+ * Creates the 'members' OpenSearch index with defined mappings.
+ *
+ * @remarks
+ * Deletes any existing index to ensure clean state for development.
+ * Uses single shard and zero replicas for local performance.
+ */
 async function createOpenSearchIndex(): Promise<void> {
     console.log('Creating OpenSearch index...');
 
@@ -161,7 +252,7 @@ async function createOpenSearchIndex(): Promise<void> {
             mappings: indexMappings,
             settings: {
                 number_of_shards: 1,
-                number_of_replicas: 0, // Local only
+                number_of_replicas: 0,
             },
         },
     });
@@ -169,11 +260,18 @@ async function createOpenSearchIndex(): Promise<void> {
     console.log('   Index created');
 }
 
+/**
+ * Indexes all mock members into OpenSearch with PII redaction.
+ *
+ * @remarks
+ * - Transforms member data before indexing
+ * - Applies PII redaction to status_notes
+ * - Uses member_id as document _id for idempotent upserts
+ */
 async function indexToOpenSearch(): Promise<void> {
     console.log('Indexing to OpenSearch (with PII redaction)...');
 
     for (const member of mockMembers) {
-        // Transform and redact before indexing
         const doc = {
             member_id: member.member_id,
             email: member.email.toLowerCase(),
@@ -181,7 +279,6 @@ async function indexToOpenSearch(): Promise<void> {
             lname: member.lname,
             status_notes: member.status_notes ? redact(member.status_notes) : undefined,
             tags: member.tags,
-            // Note: ssn_last4 is NOT indexed
         };
 
         await opensearchClient.index({
@@ -201,6 +298,14 @@ async function indexToOpenSearch(): Promise<void> {
     console.log('   OpenSearch indexed');
 }
 
+/* -------------------------------------------------------------------------- */
+/*                              Main Entrypoint                                */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * Main entrypoint for the seed script.
+ * Orchestrates the complete local development bootstrap sequence.
+ */
 async function main(): Promise<void> {
     console.log('\nMemberSearch Seed Script\n');
 

@@ -37,8 +37,7 @@ Traffic analysis for MemberSearch with mitigation strategies.
 
 **~80–170 requests/min (~1.4–2.8 RPS)** with short spikes depending on client batching (e.g., cron jobs, UI refresh waves).
 
-> [!NOTE]
-> This is NOT high traffic by most standards. Most breaking points at this scale are configuration issues, not capacity limits.
+This is not high traffic by most standards. Most breaking points at this scale are configuration issues, not capacity limits.
 
 ### Likely Breaking Points
 
@@ -116,8 +115,7 @@ functions:
           maximumRetryAttempts: 2
 ```
 
-> [!NOTE]
-> DynamoDB Streams is fine at this scale. Kinesis is only needed if your write rate is massive (10,000+ writes/min), not for 3 RPS search traffic.
+DynamoDB Streams is sufficient at this scale. Kinesis is only needed if your write rate is massive (10,000+ writes/min), not for 3 RPS search traffic.
 
 ---
 

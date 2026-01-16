@@ -8,18 +8,6 @@ describe('RedactionService', () => {
     });
 
     describe('redact', () => {
-        it('should redact SSN patterns (with dashes)', () => {
-            const input = 'SSN: 123-45-6789';
-            const output = service.redact(input);
-            expect(output).toBe('SSN: [SSN-REDACTED]');
-        });
-
-        it('should redact SSN patterns (without dashes)', () => {
-            const input = 'SSN: 123456789';
-            const output = service.redact(input);
-            expect(output).toBe('SSN: [SSN-REDACTED]');
-        });
-
         it('should redact phone numbers', () => {
             const input = 'Call 555-123-4567 for info';
             const output = service.redact(input);
@@ -39,9 +27,8 @@ describe('RedactionService', () => {
         });
 
         it('should redact multiple PII in one string', () => {
-            const input = 'SSN 123-45-6789, email test@test.com, phone 555-111-2222';
+            const input = 'Email test@test.com, phone 555-111-2222';
             const output = service.redact(input);
-            expect(output).not.toContain('123-45-6789');
             expect(output).not.toContain('test@test.com');
             expect(output).not.toContain('555-111-2222');
         });
@@ -57,8 +44,8 @@ describe('RedactionService', () => {
     });
 
     describe('containsPII', () => {
-        it('should detect SSN', () => {
-            expect(service.containsPII('SSN: 123-45-6789')).toBe(true);
+        it('should detect phone numbers', () => {
+            expect(service.containsPII('Phone: 555-123-4567')).toBe(true);
         });
 
         it('should detect email', () => {

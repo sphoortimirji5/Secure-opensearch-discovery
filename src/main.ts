@@ -8,9 +8,6 @@ async function bootstrap() {
     // Use Pino logger
     app.useLogger(app.get(Logger));
 
-    // Enable CORS for local development
-    app.enableCors();
-
     const port = process.env.PORT ?? 3000;
     await app.listen(port);
 

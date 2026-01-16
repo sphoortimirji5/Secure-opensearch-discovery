@@ -23,12 +23,11 @@ Strategies for moving between environments and handling data migrations.
 | **ECS** | Task IAM Role | Attached to ECS Task Definition |
 | **Lambda** | Execution Role | Attached to Lambda function |
 
-> [!IMPORTANT]
-> **Never hardcode AWS credentials in production.** The AWS SDK v3 automatically picks up credentials from:
-> 1. Environment variables (CI/CD)
-> 2. ECS Task Role (container metadata endpoint)
-> 3. Lambda Execution Role (automatic)
-> 4. EC2 Instance Profile
+Never hardcode AWS credentials in production. The AWS SDK v3 automatically picks up credentials from:
+1. Environment variables (CI/CD)
+2. ECS Task Role (container metadata endpoint)
+3. Lambda Execution Role (automatic)
+4. EC2 Instance Profile
 
 ```typescript
 // members.repository.ts - no credentials specified
@@ -85,8 +84,7 @@ const client = new DynamoDBClient({
 
 When mappings change or data needs re-indexing:
 
-> [!WARNING]
-> **Mapping changes must be backward-compatible with existing DLQ records.** If you add required fields or change field types, replaying the DLQ may fail. Always test DLQ replay in staging before deploying mapping changes to production.
+Mapping changes must be backward-compatible with existing DLQ records. If you add required fields or change field types, replaying the DLQ may fail. Always test DLQ replay in staging before deploying mapping changes to production.
 
 ### Zero-Downtime Reindex
 

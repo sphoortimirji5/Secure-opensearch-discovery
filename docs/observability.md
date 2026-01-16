@@ -104,8 +104,7 @@ const indexLag = new Gauge({
 // ApproximateAgeOfOldestRecord
 ```
 
-> [!TIP]
-> This metric directly supports the CDC story. If `membersearch_index_lag_seconds > 5`, the search index is drifting from the source of truth.
+This metric directly supports the CDC story. If `membersearch_index_lag_seconds > 5`, the search index is drifting from the source of truth.
 
 ---
 

@@ -56,7 +56,7 @@ async function getSecret(name: string): Promise<string> {
 ```json
 {
   "Effect": "Allow",
-  "Principal": {"AWS": "arn:aws:iam::123456789012:role/MemberSearchApiRole"},
+  "Principal": {"AWS": "arn:aws:iam::<ACCOUNT_ID>:role/MemberSearchApiRole"},
   "Action": ["kms:Decrypt"],
   "Resource": "*",
   "Condition": {
@@ -252,18 +252,21 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
 
 ```typescript
 // search.service.ts
-private getSourceFilter(role: string): string[] {
-  const baseFields = ['member_id', 'email', 'fname', 'lname'];
+private getSourceFilter(user: AuthenticatedUser): string[] {
+  const baseFields = ['member_id', 'email', 'fname', 'lname', 'tags', 'tenant_id'];
   
-  if (role === 'compliance_lead') {
-    return [...baseFields, 'status_notes', 'ssn_last4'];
+  if (user.tenantType === 'external') {
+    return user.roles.includes('admin') ? [...baseFields, 'status_notes'] : baseFields;
+  }
+  
+  if (user.roles.includes('compliance_lead')) {
+    return [...baseFields, 'status_notes'];
   }
   return baseFields;  // Auditor: no sensitive fields
 }
 ```
 
-> [!IMPORTANT]
-> **Application-layer filtering is the primary enforcement.** The `getSourceFilter()` function in the API layer makes all authorization decisions. OpenSearch FLS (below) is treated as a secondary safeguard — a defense-in-depth measure, not relied upon for correctness.
+Application-layer filtering is the primary enforcement. The `getSourceFilter()` function in the API layer makes all authorization decisions. OpenSearch FLS (below) is treated as a secondary safeguard—a defense-in-depth measure, not relied upon for correctness.
 
 ---
 
@@ -274,7 +277,6 @@ private getSourceFilter(role: string): string[] {
 ```typescript
 // redaction.service.ts
 const PII_PATTERNS = [
-  { regex: /\b\d{3}-\d{2}-\d{4}\b/g, replacement: '[SSN-REDACTED]' },
   { regex: /\b\d{3}[-.]?\d{3}[-.]?\d{4}\b/g, replacement: '[PHONE-REDACTED]' },
   { regex: /\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b/g, replacement: '[EMAIL-REDACTED]' },
 ];
@@ -282,14 +284,13 @@ const PII_PATTERNS = [
 
 ### OpenSearch Field-Level Security (Defense-in-Depth)
 
-> [!NOTE]
-> FLS is a secondary safeguard. All authorization decisions are enforced in the API layer. If FLS is misconfigured, the application still protects sensitive fields.
+FLS is a secondary safeguard. All authorization decisions are enforced in the API layer. If FLS is misconfigured, the application still protects sensitive fields.
 
 ```json
 {
   "index_permissions": [{
     "index_patterns": ["members"],
-    "fls": ["~ssn_last4", "~status_notes"],
+    "fls": ["~status_notes"],
     "allowed_actions": ["read"]
   }]
 }

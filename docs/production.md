@@ -60,8 +60,7 @@ AWS-based production architecture for MemberSearch.
 | **Rollover** | Not required initially | Single index; implement when index size exceeds 50GB |
 | **Retention** | Indefinite (sync with DynamoDB) | Soft deletes via TTL if needed |
 
-> [!NOTE]
-> Index lifecycle policies (ILM) can be added later if data volume grows. For now, a single `members` index with alias-based reindexing is sufficient.
+Index lifecycle policies (ILM) can be added later if data volume grows. For now, a single `members` index with alias-based reindexing is sufficient.
 
 ---
 
@@ -71,8 +70,7 @@ AWS-based production architecture for MemberSearch.
 # .env.production
 OPENSEARCH_NODE=https://membersearch.us-east-1.es.amazonaws.com
 AWS_REGION=us-east-1
-# No DYNAMODB_ENDPOINT — uses real AWS
-# No SKIP_AUTH — JWT required
+JWT_ISSUER=https://cognito-idp.us-east-1.amazonaws.com/<pool-id>
 ```
 
 ---
