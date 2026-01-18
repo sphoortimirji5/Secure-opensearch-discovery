@@ -73,7 +73,7 @@ export class GroundingService {
     }
 
     private buildAuditPrompt(context: string, response: string): string {
-        return `You are a strict Auditor verifying factual accuracy.
+        return `You are a strict Auditor verifying factual accuracy and structural binding.
 
 FACTS (source data):
 ${context}
@@ -84,20 +84,23 @@ ${response}
 CRITERIA:
 1. Is every specific detail in the CLAIM directly supported by the FACTS?
 2. Does the CLAIM introduce any information (names, numbers, rates, dates) NOT present in the FACTS?
-3. Are any conclusions logically derived from the FACTS, or are they unsupported inferences?
+3. CITATION CHECK: Does every claim include a record ID citation (e.g., [mem-001], [GYM_104])?
+4. VALIDITY CHECK: Do the quoted record IDs actually exist in the FACTS?
+5. Are any conclusions logically derived from the FACTS, or are they unsupported inferences?
 
 SCORING:
-- 1.0: Every claim is directly supported by facts
-- 0.8-0.9: Claims are mostly supported, minor inferences acceptable
-- 0.5-0.7: Some claims lack direct support
-- 0.0-0.4: Significant claims are unsupported or fabricated
+- 1.0: Every claim is directly supported by facts and includes valid record ID citations.
+- 0.8-0.9: Claims are mostly supported, minor inferences or 1-2 missing citations but otherwise accurate.
+- 0.5-0.7: Some claims lack direct support or use non-existent record IDs.
+- 0.0-0.4: Significant claims are unsupported, fabricated, or lack mandatory citations.
 
 Respond ONLY with a JSON object:
 {
   "grounded": true/false,
   "score": 0.0-1.0,
-  "reason": "brief explanation of your assessment",
-  "unsupported_claims": ["list of any claims not in facts"]
+  "reason": "brief explanation of your assessment of facts and citations",
+  "unsupported_claims": ["list of any claims not in facts"],
+  "missing_citations": ["list of claims lacking record ID binding"]
 }`;
     }
 

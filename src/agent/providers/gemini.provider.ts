@@ -38,11 +38,23 @@ export class GeminiProvider implements LLMProvider {
         return 'gemini';
     }
 
-    async analyze(question: string, context: string): Promise<LLMAnalysisResult> {
-        const prompt = this.buildPrompt(question, context);
+    async analyze(question: string, context: string, systemPrompt?: string): Promise<LLMAnalysisResult> {
+        let activeModel = this.model;
+
+        // If a system prompt is provided, re-get the model with system instructions
+        // to ensure strict adherence and separate instruction from data.
+        if (systemPrompt) {
+            const genAI = new GoogleGenerativeAI(this.config.get<string>('GEMINI_API_KEY') || 'MISSING_KEY');
+            activeModel = genAI.getGenerativeModel({
+                model: 'gemini-2.5-flash',
+                systemInstruction: systemPrompt,
+            });
+        }
+
+        const prompt = this.buildPrompt(question, context, !!systemPrompt);
 
         try {
-            const result = await this.model.generateContent(prompt);
+            const result = await activeModel.generateContent(prompt);
             const response = result.response.text();
 
             return this.parseResponse(response);
@@ -52,7 +64,16 @@ export class GeminiProvider implements LLMProvider {
         }
     }
 
-    private buildPrompt(question: string, context: string): string {
+    private buildPrompt(question: string, context: string, hasSystemPrompt: boolean): string {
+        if (hasSystemPrompt) {
+            // When system prompt is used, the prompt only contains user data/question
+            return `CONTEXT:
+${context}
+
+QUESTION: ${question}`;
+        }
+
+        // Fallback for legacy calls without system prompt
         return `You are an RCM (Revenue Cycle Management) analyst. Analyze the following data and answer the question.
 
 QUESTION: ${question}

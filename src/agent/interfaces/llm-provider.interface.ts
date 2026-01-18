@@ -23,9 +23,10 @@ export interface LLMProvider {
      *
      * @param question - User's question
      * @param context - Redacted data context from OpenSearch
+     * @param systemPrompt - Optional system instruction anchoring
      * @returns Analysis result with summary and confidence
      */
-    analyze(question: string, context: string): Promise<LLMAnalysisResult>;
+    analyze(question: string, context: string, systemPrompt?: string): Promise<LLMAnalysisResult>;
 
     /**
      * Returns the provider name for logging/metrics.
