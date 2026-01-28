@@ -57,6 +57,73 @@ services:
       timeout: 5s
       retries: 5
 
+  # =====================
+  # Observability Stack
+  # =====================
+
+  jaeger:
+    image: jaegertracing/all-in-one:1.54
+    container_name: membersearch-jaeger
+    environment:
+      - COLLECTOR_OTLP_ENABLED=true
+    ports:
+      - "16686:16686"   # Jaeger UI
+      - "4318:4318"     # OTLP HTTP receiver
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --spider http://localhost:16686 || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  prometheus:
+    image: prom/prometheus:v2.48.0
+    container_name: membersearch-prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.enable-lifecycle'
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./infra/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus-data:/prometheus
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+  loki:
+    image: grafana/loki:2.9.3
+    container_name: membersearch-loki
+    command: -config.file=/etc/loki/local-config.yaml
+    ports:
+      - "3100:3100"
+    volumes:
+      - loki-data:/loki
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --spider http://localhost:3100/ready || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  grafana:
+    image: grafana/grafana:10.2.3
+    container_name: membersearch-grafana
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_USERS_ALLOW_SIGN_UP=false
+    ports:
+      - "3001:3000"
+    volumes:
+      - ./infra/grafana/provisioning:/etc/grafana/provisioning:ro
+      - grafana-data:/var/lib/grafana
+    depends_on:
+      - prometheus
+      - jaeger
+      - loki
+
 volumes:
   opensearch-data:
   postgres-data:
+  prometheus-data:
+  grafana-data:
+  loki-data:

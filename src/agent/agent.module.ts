@@ -19,8 +19,8 @@ import {
     OutputValidator,
     RateLimiter,
     GuardrailsService,
-    GroundingService,
 } from './guardrails';
+import { GroundingService } from './grounding';
 import { AgentService } from './agent.service';
 import { AgentController } from './agent.controller';
 

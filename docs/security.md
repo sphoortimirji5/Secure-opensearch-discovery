@@ -77,7 +77,7 @@ async function getSecret(name: string): Promise<string> {
 | OpenSearch | AES-256 | AWS-managed or CMK |
 | S3 (if used) | SSE-S3 or SSE-KMS | AWS-managed or CMK |
 | SQS DLQ | SSE-SQS | AWS-managed |
-| CloudWatch Logs | Default encryption | AWS-managed |
+| Loki (Logs) | HTTPS in transit | TLS 1.2+ |
 
 ### DynamoDB CMK Configuration
 
@@ -398,7 +398,6 @@ const groundingResult = await this.grounding.check(
 );
 ```
 
-> [!IMPORTANT]
 > The grounding context is NOT a curated summary store. It is the live, redacted search results that the LLM received.
 
 ### Grounding Verification

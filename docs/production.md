@@ -130,37 +130,7 @@ BEDROCK_MODEL_ID=anthropic.claude-3-haiku-20240307-v1:0
 
 ## Deployment
 
-### Lambda Indexer (Serverless Framework)
-```bash
-cd indexer/
-serverless deploy --stage prod
-```
-
-### NestJS API (ECS)
-```bash
-# Build container
-docker build -t membersearch-api .
-
-# Push to ECR
-aws ecr get-login-password | docker login --username AWS --password-stdin <account>.dkr.ecr.<region>.amazonaws.com
-docker tag membersearch-api:latest <account>.dkr.ecr.<region>.amazonaws.com/membersearch-api:latest
-docker push <account>.dkr.ecr.<region>.amazonaws.com/membersearch-api:latest
-
-# Deploy via Terraform/CDK
-terraform apply
-```
-
-### Locations Sync (Scheduled)
-```yaml
-# serverless.yml
-functions:
-  locationsReindex:
-    handler: src/locations/reindex.handler
-    events:
-      - schedule: rate(1 hour)
-    environment:
-      POSTGRES_HOST: ${ssm:/membersearch/prod/postgres/host}
-```
+See [migration.md](migration.md) for deployment steps.
 
 ---
 
@@ -176,11 +146,4 @@ functions:
 
 ## Monitoring
 
-| Metric | Source | Alert Threshold |
-|--------|--------|-----------------|
-| DLQ Message Count | SQS | > 0 |
-| Lambda Errors | CloudWatch | > 1% error rate |
-| OpenSearch Cluster Health | OpenSearch | Yellow/Red |
-| API p99 Latency | API Gateway | > 500ms |
-| Bedrock Throttling | CloudWatch | > 0 |
-| Agent Guardrails Blocks | Custom Metrics | > 10% |
+See [observability.md](observability.md) for metrics, alerting, and dashboards.

@@ -86,62 +86,25 @@ src/
 ├── membership/        # DynamoDB → OpenSearch vertical
 ├── locations/         # PostgreSQL → OpenSearch vertical
 ├── agent/
+│   ├── dto/           # Request/response DTOs
+│   ├── interfaces/    # LLMProvider contracts
 │   ├── providers/     # Gemini, Bedrock
+│   ├── grounding/     # Hallucination prevention
 │   └── guardrails/    # Input/output validation
-└── config/            # Environment config
-```
-
----
-
-## Environment Hub
-
-| Environment | Purpose | Documentation |
-|-------------|---------|---------------|
-| Local | Docker-based development | [docs/local.md](docs/local.md) |
-| Production | AWS (OpenSearch, Lambda, Bedrock) | [docs/production.md](docs/production.md) |
-| Migration | Switching environments | [docs/migration.md](docs/migration.md) |
-
----
-
-## Key Design Decisions
-
-| Decision | Choice | Rationale |
-|----------|--------|-----------|
-| Search Engine | OpenSearch | AWS-managed, fuzzy search, field-level security |
-| Membership Sync | DynamoDB Streams | Near real-time, built-in retry |
-| Locations Sync | Batch reindex | Simpler, controllable |
-| LLM Provider | Gemini (local) / Bedrock (prod) | No API keys in prod (IAM) |
-| Guardrails | Pre/post pipeline | Defense in depth |
-
----
-
-## Quickstart
-
-```bash
-# 1. Start infrastructure
-docker-compose up -d
-
-# 2. Install & seed
-npm install && npm run seed
-
-# 3. Start API
-npm run start:dev
-
-# 4. Test Membership search
-curl "http://localhost:3000/members/search?q=John%20Smith"
-
-# 5. Test Locations search
-curl "http://localhost:3000/locations/search?q=Downtown%20Fitness&region=Southeast"
+├── config/            # Environment config
+└── tracing.ts         # OpenTelemetry auto-instrumentation
 ```
 
 ---
 
 ## Documentation
 
-- [Local Development](docs/local.md)
-- [Production Deployment](docs/production.md)
-- [Migration Guide](docs/migration.md)
-- [Testing Strategy](docs/testing.md)
-- [Observability](docs/observability.md)
-- [Security](docs/security.md)
-- [Scale & Failure Modes](docs/scale.md)
+| Doc | Purpose |
+|-----|---------|
+| [local.md](docs/local.md) | Local development setup |
+| [production.md](docs/production.md) | AWS architecture & config |
+| [migration.md](docs/migration.md) | Deploy local → production |
+| [testing.md](docs/testing.md) | Test strategy & commands |
+| [observability.md](docs/observability.md) | Logs, traces, metrics, alerts |
+| [security.md](docs/security.md) | Auth, encryption, guardrails |
+| [scale.md](docs/scale.md) | Scaling & failure modes |

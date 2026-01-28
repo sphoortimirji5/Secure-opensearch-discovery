@@ -12,7 +12,8 @@ import { LocationsSearchService } from '../locations';
 import { RedactionService } from '../shared/redaction';
 import { AuthenticatedUser } from '../shared/auth';
 import { LLMProvider, LLM_PROVIDER, Insight } from './interfaces';
-import { GuardrailsService, GroundingService } from './guardrails';
+import { GuardrailsService } from './guardrails';
+import { GroundingService } from './grounding';
 import { Counter, Histogram } from 'prom-client';
 
 const analysisCounter = new Counter({

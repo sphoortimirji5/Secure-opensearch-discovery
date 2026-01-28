@@ -1,0 +1,41 @@
+# Dependencies
+node_modules
+
+# Build output
+dist
+
+# Git
+.git
+.gitignore
+
+# Development
+.env*
+!.env.example
+docker-compose.yml
+
+# Tests
+test
+coverage
+*.spec.ts
+jest*.json
+
+# Documentation
+docs
+README.md
+*.md
+
+# IDE
+.vscode
+.idea
+*.swp
+*.swo
+
+# Scripts (dev only)
+scripts
+
+# Infrastructure (CDK)
+infra
+
+# Misc
+.DS_Store
+*.log

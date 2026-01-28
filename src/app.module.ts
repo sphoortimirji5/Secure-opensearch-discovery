@@ -22,9 +22,27 @@ import { PrometheusModule } from '@willsoto/nestjs-prometheus';
         LoggerModule.forRoot({
             pinoHttp: {
                 level: process.env.NODE_ENV === 'production' ? 'info' : 'debug',
-                transport: process.env.NODE_ENV !== 'production'
-                    ? { target: 'pino-pretty' }
-                    : undefined,
+                transport: process.env.NODE_ENV === 'production'
+                    ? undefined // JSON output for CloudWatch
+                    : {
+                        targets: [
+                            {
+                                target: 'pino-pretty',
+                                level: 'debug',
+                                options: { colorize: true },
+                            },
+                            {
+                                target: 'pino-loki',
+                                level: 'info',
+                                options: {
+                                    host: process.env.LOKI_HOST || 'http://localhost:3100',
+                                    labels: { app: 'membersearch-api' },
+                                    batching: true,
+                                    interval: 5,
+                                },
+                            },
+                        ],
+                    },
                 redact: ['req.headers.authorization', 'res.headers["set-cookie"]'],
             },
         }),

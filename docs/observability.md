@@ -1,218 +1,176 @@
 # Observability
 
-Logging, metrics, and monitoring for Secure OpenSearch Discovery multi-vertical platform.
+Logging, metrics, tracing, and monitoring for Secure OpenSearch Discovery.
 
 ---
 
-## Logging
+## Local Stack
 
-### NestJS API (nestjs-pino)
+| Service | URL | Purpose |
+|---------|-----|---------|
+| API Metrics | http://localhost:3000/metrics | Prometheus metrics endpoint |
+| Jaeger | http://localhost:16686 | Distributed tracing UI |
+| Prometheus | http://localhost:9090 | Metrics storage & queries |
+| Grafana | http://localhost:3001 | Dashboards (admin/admin) |
+| Loki | http://localhost:3100 | Log aggregation |
 
-```typescript
-// main.ts
-import { Logger } from 'nestjs-pino';
+```bash
+# Start observability stack
+docker-compose up -d
 
-app.useLogger(app.get(Logger));
+# Start app with tracing enabled
+npm run start:dev
+
+# Generate traffic, then explore:
+# - Traces: http://localhost:16686 (Service: membersearch-api)
+# - Metrics: http://localhost:9090 (query: membersearch_queries_total)
+# - Dashboards: http://localhost:3001
 ```
 
-**Configuration:**
+---
+
+## Tracing (OpenTelemetry + Jaeger)
+
+Auto-instrumentation via `src/tracing.ts`:
+
 ```typescript
-// app.module.ts
-PinoModule.forRoot({
-  pinoHttp: {
-    level: process.env.NODE_ENV === 'production' ? 'info' : 'debug',
-    transport: process.env.NODE_ENV !== 'production'
-      ? { target: 'pino-pretty' }
-      : undefined,
-    redact: ['req.headers.authorization', 'res.headers["set-cookie"]'],
-  },
+import { NodeSDK } from '@opentelemetry/sdk-node';
+import { getNodeAutoInstrumentations } from '@opentelemetry/auto-instrumentations-node';
+import { OTLPTraceExporter } from '@opentelemetry/exporter-trace-otlp-http';
+
+const sdk = new NodeSDK({
+    resource: new Resource({
+        [SemanticResourceAttributes.SERVICE_NAME]: 'membersearch-api',
+    }),
+    traceExporter: new OTLPTraceExporter({
+        url: process.env.OTEL_EXPORTER_OTLP_ENDPOINT || 'http://localhost:4318/v1/traces',
+    }),
+    instrumentations: [getNodeAutoInstrumentations()],
 });
 ```
 
-### Log Format
+### What Gets Traced
 
-**Local (pretty):**
-```
-[09:45:30] INFO: Search request received
-  query: "violation"
-  role: "auditor"
-  duration: 45ms
+| Component | Auto-instrumented |
+|-----------|-------------------|
+| HTTP requests | ✅ Express/NestJS |
+| Database | ✅ TypeORM/PostgreSQL |
+| External HTTP | ✅ fetch/axios |
+| OpenSearch | ✅ Elasticsearch client |
+
+### Production Configuration
+
+Set `OTEL_EXPORTER_OTLP_ENDPOINT` to your backend:
+
+| Provider | Endpoint |
+|----------|----------|
+| Grafana Cloud | `https://otlp-gateway.grafana.net/otlp` |
+| Self-hosted Jaeger | Your Jaeger OTLP endpoint |
+| Honeycomb | `https://api.honeycomb.io:443` |
+
+---
+
+## Logging (Pino)
+
+```typescript
+PinoModule.forRoot({
+    pinoHttp: {
+        level: process.env.NODE_ENV === 'production' ? 'info' : 'debug',
+        transport: process.env.NODE_ENV !== 'production'
+            ? { target: 'pino-pretty' }
+            : undefined,
+        redact: ['req.headers.authorization'],
+    },
+});
 ```
 
-**Production (JSON):**
-```json
-{"level":"info","time":1705312345,"msg":"Search request received","query":"violation","role":"auditor","duration":45}
-```
+| Environment | Format |
+|-------------|--------|
+| Local | Pretty-printed + Loki |
+| Production | JSON (Loki or any log aggregator) |
 
 ---
 
 ## Metrics (Prometheus)
 
-### Setup
-
-```typescript
-// app.module.ts
-import { PrometheusModule } from '@willsoto/nestjs-prometheus';
-
-PrometheusModule.register({
-  path: '/metrics',
-  defaultMetrics: { enabled: true },
-});
-```
-
-### Accessing Metrics
-
-```bash
-curl http://localhost:3000/metrics
-```
-
----
-
-## Membership Metrics
+### Application Metrics
 
 | Metric | Type | Labels | Description |
 |--------|------|--------|-------------|
-| `membersearch_queries_total` | Counter | role, tenant_type, status | Total member search requests |
-| `membersearch_query_duration_seconds` | Histogram | - | Search latency distribution |
-| `membersearch_index_operations_total` | Counter | status | Document index operations |
-| `membersearch_reindex_total` | Counter | - | Full reindex operations |
-
----
-
-## Locations Metrics
-
-| Metric | Type | Labels | Description |
-|--------|------|--------|-------------|
-| `locations_queries_total` | Counter | role, status | Total location search requests |
-| `locations_query_duration_seconds` | Histogram | - | Location search latency |
-| `locations_index_operations_total` | Counter | status | Location index operations |
-| `locations_reindex_total` | Counter | - | PostgreSQL→OpenSearch reindex |
-
----
-
-## Agent Metrics
-
-| Metric | Type | Labels | Description |
-|--------|------|--------|-------------|
-| `agent_analysis_total` | Counter | provider, status | Total LLM analyses |
+| `membersearch_queries_total` | Counter | role, status | Member search requests |
+| `membersearch_query_duration_seconds` | Histogram | - | Search latency |
+| `locations_queries_total` | Counter | role, status | Location search requests |
+| `agent_analysis_total` | Counter | provider, status | LLM analyses |
 | `agent_analysis_duration_seconds` | Histogram | - | LLM response latency |
-| `agent_guardrails_total` | Counter | type, action | Guardrails pipeline results |
+| `agent_guardrails_total` | Counter | type, action | Guardrail pipeline results |
 
-### Guardrails Labels
+### Prometheus Configuration
 
-| type | action | Meaning |
-|------|--------|---------|
-| `input` | `allowed` | Question passed input validation |
-| `input` | `blocked` | Prompt injection or PII detected |
-| `output` | `passed` | LLM response validated |
-| `output` | `fallback` | Fallback response used |
-
-### LLM Provider
-
-| Provider | Environment | Metrics Label |
-|----------|-------------|---------------|
-| Gemini 2.5 Flash | Local | `provider="gemini"` |
-| AWS Bedrock | Production | `provider="bedrock"` |
-
----
-
-## Distributed Tracing (AWS X-Ray)
-
-### Lambda Indexer
-```typescript
-import AWSXRay from 'aws-xray-sdk';
-const AWS = AWSXRay.captureAWS(require('aws-sdk'));
-```
-
-### NestJS (via OpenTelemetry)
-```typescript
-// tracing.ts
-import { NodeSDK } from '@opentelemetry/sdk-node';
-import { AWSXRayPropagator } from '@opentelemetry/propagator-aws-xray';
-
-const sdk = new NodeSDK({
-  textMapPropagator: new AWSXRayPropagator(),
-});
-sdk.start();
+```yaml
+# infra/prometheus/prometheus.yml
+scrape_configs:
+  - job_name: 'membersearch-api'
+    static_configs:
+      - targets: ['host.docker.internal:3000']
+    metrics_path: '/metrics'
 ```
 
 ---
 
 ## Service Level Objectives (SLOs)
 
-### Membership Search
-| SLI | Target | Measurement |
-|-----|--------|-------------|
-| Availability | 99.9% | Successful responses / total requests |
-| Latency (p99) | < 200ms | `membersearch_query_duration_seconds` |
-| Index Lag | < 5 seconds | DynamoDB Stream age |
-
-### Locations Search
-| SLI | Target | Measurement |
-|-----|--------|-------------|
-| Availability | 99.9% | Successful responses / total requests |
-| Latency (p99) | < 200ms | `locations_query_duration_seconds` |
-
-### Agent Analysis
-| SLI | Target | Measurement |
-|-----|--------|-------------|
-| Availability | 99% | Successful analyses / total requests |
-| Latency (p99) | < 30s | `agent_analysis_duration_seconds` |
-| Guardrails Block Rate | < 5% | `agent_guardrails_total{action="blocked"}` |
+| Service | SLI | Target |
+|---------|-----|--------|
+| Membership Search | Availability | 99.9% |
+| Membership Search | p99 Latency | < 200ms |
+| Locations Search | Availability | 99.9% |
+| Agent Analysis | Availability | 99% |
+| Agent Analysis | p99 Latency | < 30s |
 
 ---
 
-## Alerting
+## Grafana Dashboards
 
-### CloudWatch Alarms
+Auto-provisioned data sources:
+- **Prometheus**: Metrics queries
+- **Jaeger**: Trace exploration
+
+### Recommended Panels
+
+1. Request rate by vertical
+2. Latency percentiles (p50, p95, p99)
+3. Error rate
+4. Agent guardrails block rate
+5. Trace-to-logs correlation
+
+---
+
+## Production Alerting
+
+### Grafana Alerting (Recommended)
+
+Use Grafana's unified alerting with Prometheus and Loki:
 
 ```yaml
-# DLQ not empty
-- AlarmName: MemberSearchDLQNotEmpty
-  MetricName: ApproximateNumberOfMessagesVisible
-  Namespace: AWS/SQS
-  Threshold: 1
-  ComparisonOperator: GreaterThanOrEqualToThreshold
+# Prometheus alert rules
+groups:
+  - name: membersearch
+    rules:
+      - alert: HighErrorRate
+        expr: rate(http_requests_total{status=~"5.."}[5m]) > 0.01
+        for: 5m
+        labels:
+          severity: critical
 
-# High error rate
-- AlarmName: MemberSearchAPIErrors
-  MetricName: 5XXError
-  Namespace: AWS/ApiGateway
-  Threshold: 1
-  EvaluationPeriods: 1
+      - alert: HighAgentBlockRate
+        expr: rate(agent_guardrails_total{action="blocked"}[5m]) > 100
+        for: 5m
+        labels:
+          severity: warning
 
-# LLM rate limiting
-- AlarmName: AgentHighBlockRate
-  MetricName: agent_guardrails_total
-  Dimensions:
-    - Name: action
-      Value: blocked
-  Threshold: 100  # per minute
-  ComparisonOperator: GreaterThanThreshold
-
-# Index drift detection
-- AlarmName: MemberSearchIndexLag
-  MetricName: ApproximateAgeOfOldestRecord
-  Namespace: AWS/DynamoDB
-  Dimensions:
-    - Name: TableName
-      Value: members
-  Threshold: 5000  # 5 seconds in milliseconds
-  ComparisonOperator: GreaterThanThreshold
+      - alert: HighLatency
+        expr: histogram_quantile(0.99, rate(http_request_duration_seconds_bucket[5m])) > 0.2
+        for: 5m
+        labels:
+          severity: warning
 ```
-
----
-
-## Dashboards
-
-### Grafana (if self-hosting metrics)
-- Search RPS and latency by vertical
-- Agent analysis success rate
-- Guardrails block rate
-- Index operations per second
-
-### CloudWatch Dashboard
-- Lambda invocations and errors
-- API Gateway latency percentiles
-- OpenSearch domain metrics
-- Bedrock token usage (production)

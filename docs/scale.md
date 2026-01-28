@@ -190,12 +190,12 @@ const client = jwksClient({
   - **Critical**: >= 20 messages (immediate action)
 
 ```yaml
-# CloudWatch Alarm - low volume appropriate
-- Name: MemberSearchDLQWarning
-  Metric: ApproximateNumberOfMessagesVisible
-  Threshold: 1
-  Period: 300
-  EvaluationPeriods: 1
+# Prometheus Alert - low volume appropriate
+- alert: MemberSearchDLQWarning
+  expr: aws_sqs_approximate_number_of_messages_visible > 0
+  for: 5m
+  labels:
+    severity: warning
 ```
 
 ---
