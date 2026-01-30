@@ -154,6 +154,7 @@ src/
 
 | Doc | Purpose |
 |-----|---------|
+| [api_docs.md](docs/api_docs.md) | API testing & authentication |
 | [local.md](docs/local.md) | Local development setup |
 | [production.md](docs/production.md) | AWS architecture & config |
 | [migration.md](docs/migration.md) | Deploy local → production |
