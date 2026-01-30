@@ -6,6 +6,39 @@ Collect structured human feedback on grounding decisions to improve accuracy, re
 
 ---
 
+## S3 Contracts Vertical (Planned Extension)
+
+Ground LLM responses against location contract documents stored in S3.
+
+### Architecture
+
+```
+S3 (PDFs) → Textract → OpenSearch `contracts` index → Agent context → Grounded response
+```
+
+### Use Case
+
+> "Is location loc-042 still within contract terms?"
+
+**Response with contract grounding:**
+```json
+{
+  "summary": "Location loc-042 is within contract terms.",
+  "reasoning": "Contract s3://contracts/loc-042.pdf effective 2024-01-01 to 2025-12-31. Current date within range. Rate: $25/visit, matching member billing records."
+}
+```
+
+### Implementation
+
+| Component | Detail |
+|-----------|--------|
+| **Trigger** | S3 upload event → Lambda |
+| **Extraction** | AWS Textract for PDFs |
+| **Index** | OpenSearch `contracts` (contract_id, location_id, effective_dates, terms) |
+| **Grounding** | Include contract snippets in LLM context |
+
+---
+
 ## Architecture Overview
 
 ```

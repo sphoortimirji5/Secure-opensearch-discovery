@@ -115,7 +115,7 @@ POST /agent/analyze
 {
   "summary": "Q4 showed 15% increase in enrollments [mem-001, mem-042]...",
   "confidence": "high",
-  "reasoning": "Based on 47 member records with enrollment dates in Oct-Dec, comparing to 41 records in Q3.",
+  "reasoning": "Counted 47 members with enrollment_date between 2024-10-01 and 2024-12-31 from records [mem-001, mem-042, ...]. Q3 had 41 enrollments. Increase = (47-41)/41 = 14.6%, rounded to 15%.",
   "provider": "bedrock"
 }
 ```
