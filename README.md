@@ -8,11 +8,13 @@ NestJS service providing sub-second fuzzy search over PII-redacted records from 
 
 ## Problem
 
-Transactional databases (DynamoDB, PostgreSQL) cannot support complex text searches. Querying production tables directly impacts performance and lacks full-text capabilities.
+1. **Search:** Transactional databases (DynamoDB, PostgreSQL) lack full-text search capabilities
+2. **Insights:** Raw data requires manual analysis; no intelligent summarization or cross-vertical reasoning
 
 ## Solution
 
-Extract → Redact → Index pipeline creating searchable, PII-protected OpenSearch indices, plus an LLM agent for cross-vertical analysis.
+1. **Search:** Extract → Redact → Index pipeline for PII-protected, fuzzy-searchable OpenSearch indices
+2. **Insights:** Grounded LLM agent for intelligent analysis with hallucination prevention
 
 ---
 
@@ -26,7 +28,7 @@ Extract → Redact → Index pipeline creating searchable, PII-protected OpenSea
 | **Sync** | DynamoDB Streams → Lambda → OpenSearch |
 | **Index** | `members` |
 | **API** | `GET /members/search?q=...` |
-| **Features** | Fuzzy search, RBAC field filtering, PII redaction |
+| **Features** | Fuzzy search, PII redaction |
 
 ### Locations (PostgreSQL → OpenSearch)
 
@@ -36,7 +38,7 @@ Extract → Redact → Index pipeline creating searchable, PII-protected OpenSea
 | **Sync** | Batch reindex on-demand |
 | **Index** | `locations` |
 | **API** | `GET /locations/search?q=...&region=...&rate_model=...` |
-| **Features** | Region/rate model filters, tenant isolation |
+| **Features** | Region/rate model filters |
 
 **Rate Models:** `standard`, `per_participant`, `conversion_rate`, `new_enrollee`, `admin_enrollee`
 
@@ -92,7 +94,7 @@ Extract → Redact → Index pipeline creating searchable, PII-protected OpenSea
 
 ### Inference Flow
 
-Query → RBAC Filter → PII Redaction → LLM Analysis → Grounding Check → Response
+Query → PII Redaction → LLM Analysis → Grounding Check → Response
 
 ### Agent Analysis
 

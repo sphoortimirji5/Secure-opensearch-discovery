@@ -250,26 +250,6 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
 }
 ```
 
-### RBAC Field Filtering
-
-```typescript
-// search.service.ts
-private getSourceFilter(user: AuthenticatedUser): string[] {
-  const baseFields = ['member_id', 'email', 'fname', 'lname', 'tags', 'tenant_id'];
-  
-  if (user.tenantType === 'external') {
-    return user.roles.includes('admin') ? [...baseFields, 'status_notes'] : baseFields;
-  }
-  
-  if (user.roles.includes('compliance_lead')) {
-    return [...baseFields, 'status_notes'];
-  }
-  return baseFields;  // Auditor: no sensitive fields
-}
-```
-
-Application-layer filtering is the primary enforcement. The `getSourceFilter()` function in the API layer makes all authorization decisions. OpenSearch FLS (below) is treated as a secondary safeguard—a defense-in-depth measure, not relied upon for correctness.
-
 ---
 
 ## LLM Guardrails (Agent Vertical)
@@ -523,7 +503,7 @@ export class AuditInterceptor implements NestInterceptor {
 ### Authentication & Authorization
 - [ ] IAM roles with least privilege
 - [ ] JWT validation with Cognito JWKS
-- [ ] RBAC field filtering enforced in API layer
+- [ ] Role-based endpoint access via RolesGuard
 
 ### Data Protection
 - [ ] PII redaction before indexing

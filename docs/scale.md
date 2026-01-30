@@ -4,6 +4,33 @@ Traffic analysis and failure mode mitigation for the Secure OpenSearch Discovery
 
 ---
 
+## Why OpenSearch for Reads?
+
+Transactional databases (DynamoDB, PostgreSQL) are optimized for OLTP workloads, not full-text search. Moving read traffic to OpenSearch provides:
+
+| Benefit | How |
+|---------|-----|
+| **Read scaling** | Add replica shards—each handles queries independently |
+| **Write isolation** | Search queries don't compete with transactional writes |
+| **Horizontal scaling** | Add data nodes for more capacity |
+| **Built-in caching** | Query cache and field data cache reduce repeated lookups |
+
+---
+
+## Redis for Additional Caching
+
+For high-traffic scenarios, Redis can cache frequent or expensive queries:
+
+| Use Case | TTL | Benefit |
+|----------|-----|---------|
+| **Frequent searches** | 60–300s | Reduce OpenSearch load for repeated queries |
+| **LLM responses** | 300–600s | Expensive LLM calls cached for identical questions |
+| **Rate limiting** | N/A | Token bucket per user/IP |
+
+> **Note:** Redis is not currently implemented but is a recommended enhancement for scaling beyond 10,000 req/hr.
+
+---
+
 ## Traffic Profiles
 
 | Profile | Volume | Sustained RPS | Risk Level |
