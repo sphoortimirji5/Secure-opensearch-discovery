@@ -120,7 +120,8 @@ src/
 ├── shared/
 │   ├── auth/          # JWT strategy, RBAC guard
 │   ├── opensearch/    # Client provider
-│   └── redaction/     # PII masking
+│   ├── redaction/     # PII masking
+│   └── tracing/       # OpenTelemetry auto-instrumentation
 ├── membership/        # DynamoDB → OpenSearch vertical
 ├── locations/         # PostgreSQL → OpenSearch vertical
 ├── agent/
@@ -128,9 +129,9 @@ src/
 │   ├── interfaces/    # LLMProvider contracts
 │   ├── providers/     # Gemini, Bedrock
 │   ├── grounding/     # Hallucination prevention
+│   ├── resilience/    # Circuit breaker
 │   └── guardrails/    # Input/output validation
-├── config/            # Environment config
-└── tracing.ts         # OpenTelemetry auto-instrumentation
+└── config/            # Environment config
 ```
 
 ---

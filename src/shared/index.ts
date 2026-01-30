@@ -5,3 +5,4 @@
 export * from './auth';
 export * from './opensearch';
 export * from './redaction';
+export * from './tracing';

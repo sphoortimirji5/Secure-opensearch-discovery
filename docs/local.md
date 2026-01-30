@@ -1,6 +1,6 @@
 # Local Development
 
-Docker-based environment for developing MemberSearch.
+Docker-based environment for developing Secure OpenSearch Discovery.
 
 ---
 
@@ -44,15 +44,56 @@ API available at `http://localhost:3000`
 
 ---
 
+## API Endpoints
+
+### Membership (DynamoDB → OpenSearch)
+
+```bash
+# Search members
+GET /members/search?q=john%20smith&limit=20
+
+# Reindex from DynamoDB
+POST /members/reindex
+```
+
+### Locations (PostgreSQL → OpenSearch)
+
+```bash
+# Search locations
+GET /locations/search?q=downtown&region=Northeast&rate_model=standard
+
+# Get by ID
+GET /locations/:id
+
+# Reindex from PostgreSQL
+POST /locations/reindex
+```
+
+### Agent (LLM Analysis)
+
+```bash
+# Analyze data with LLM
+POST /agent/analyze
+Content-Type: application/json
+
+{"question": "What are the enrollment trends for Q4?"}
+```
+
+---
+
 ## Environment
 
 ```bash
 # .env.local
 OPENSEARCH_NODE=http://localhost:9200
 DYNAMODB_ENDPOINT=http://localhost:8000
+POSTGRES_HOST=localhost
+POSTGRES_PORT=5433
 JWT_SECRET=local-dev-secret-do-not-use-in-prod
 LLM_PROVIDER=gemini
 GEMINI_API_KEY=your-gemini-api-key
+LLM_TIMEOUT_MS=30000
+LLM_CIRCUIT_RESET_MS=30000
 ```
 
 ---

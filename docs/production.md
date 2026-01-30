@@ -83,48 +83,17 @@ BEDROCK_MODEL_ID=anthropic.claude-3-haiku-20240307-v1:0
 
 ---
 
-## IAM Policies
+## Access & Authentication
 
-### Lambda Indexer (Membership)
-```json
-{
-  "Effect": "Allow",
-  "Action": [
-    "dynamodb:GetRecords",
-    "dynamodb:GetShardIterator",
-    "dynamodb:DescribeStream",
-    "dynamodb:ListStreams"
-  ],
-  "Resource": "arn:aws:dynamodb:*:*:table/members/stream/*"
-}
-```
+| Component | Auth Method | Access |
+|-----------|-------------|--------|
+| **NestJS API** | ECS Task Role | OpenSearch, Bedrock, DynamoDB |
+| **Lambda Indexer** | Lambda Execution Role | DynamoDB Streams, OpenSearch write |
+| **OpenSearch** | IAM-based signing | No credentials in code |
+| **Bedrock** | IAM Task Role | No API keys—uses STS credentials |
+| **RDS** | IAM auth or Secrets Manager | Rotated credentials |
 
-### OpenSearch Access
-```json
-{
-  "Effect": "Allow",
-  "Action": ["es:ESHttpGet", "es:ESHttpPost", "es:ESHttpPut"],
-  "Resource": "arn:aws:es:*:*:domain/membersearch/*"
-}
-```
-
-### Bedrock Access (Agent)
-```json
-{
-  "Effect": "Allow",
-  "Action": ["bedrock:InvokeModel"],
-  "Resource": "arn:aws:bedrock:*:*:foundation-model/anthropic.claude*"
-}
-```
-
-### RDS Access (Locations)
-```json
-{
-  "Effect": "Allow",
-  "Action": ["rds-db:connect"],
-  "Resource": "arn:aws:rds-db:*:*:dbuser:*/locations_reader"
-}
-```
+> All IAM roles are defined in `infra/` CDK stack. No API keys or secrets in application code.
 
 ---
 
