@@ -108,15 +108,20 @@ Query → PII Redaction → LLM Analysis → Grounding Check → Response
 ```bash
 POST /agent/analyze
 {
-  "question": "What are the enrollment trends for Q4?"
+  "question": "Which members are at-risk and need follow-up?"
 }
 
 # Response
 {
-  "summary": "Q4 showed 15% increase in enrollments [mem-001, mem-042]...",
+  "question": "Which members are at-risk and need follow-up?",
+  "summary": "Bob Wilson (member_id: mem-003) is identified as an at-risk member [mem-003].",
   "confidence": "high",
-  "reasoning": "Counted 47 members with enrollment_date between 2024-10-01 and 2024-12-31 from records [mem-001, mem-042, ...]. Q3 had 41 enrollments. Increase = (47-41)/41 = 14.6%, rounded to 15%.",
-  "provider": "bedrock"
+  "reasoning": "The MEMBERSHIP DATA contains a record for 'Bob Wilson' with member_id 'mem-003' and includes 'at-risk' in his tags [mem-003].",
+  "dataPoints": {
+    "membersAnalyzed": 10,
+    "locationsAnalyzed": 8
+  },
+  "provider": "gemini"
 }
 ```
 

@@ -38,6 +38,7 @@
     "@nestjs/core": "^10.0.0",
     "@nestjs/passport": "^10.0.3",
     "@nestjs/platform-express": "^10.0.0",
+    "@nestjs/swagger": "^7.4.2",
     "@nestjs/typeorm": "^11.0.0",
     "@opensearch-project/opensearch": "^2.6.0",
     "@opentelemetry/auto-instrumentations-node": "^0.47.0",
@@ -60,6 +61,7 @@
     "prom-client": "^15.1.0",
     "reflect-metadata": "^0.1.13",
     "rxjs": "^7.8.1",
+    "swagger-ui-express": "^5.0.1",
     "typeorm": "^0.3.28",
     "zod": "^3.22.4"
   },

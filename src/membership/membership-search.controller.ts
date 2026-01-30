@@ -15,6 +15,7 @@
 
 import { Controller, Get, Query, UseGuards, Request } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
+import { ApiTags, ApiOperation, ApiQuery, ApiBearerAuth } from '@nestjs/swagger';
 import { MembershipSearchService, SearchQuery, SearchResult } from './membership-search.service';
 import { AuthenticatedUser } from '../shared/auth';
 
@@ -22,32 +23,22 @@ import { AuthenticatedUser } from '../shared/auth';
 /*                              Controller Implementation                      */
 /* -------------------------------------------------------------------------- */
 
+@ApiTags('members')
 @Controller('members/search')
 export class MembershipSearchController {
     constructor(private searchService: MembershipSearchService) { }
 
     /**
      * Executes a member search with role-based field filtering.
-     *
-     * @param q - Free-text query for fuzzy matching across name/email/notes
-     * @param email - Exact email match (takes precedence over q)
-     * @param fuzzy - Enable fuzzy matching (default: true, set 'false' to disable)
-     * @param limit - Maximum results to return (default: 20)
-     * @param req - Request object containing authenticated user
-     * @returns Array of member search results with role-filtered fields
-     *
-     * @remarks
-     * Authentication: Requires valid JWT Bearer token in Authorization header.
-     * Field filtering: Response fields depend on user role (auditor vs compliance_lead).
-     *
-     * @example
-     * ```bash
-     * curl "http://localhost:3000/search?q=violation" \
-     *   -H "Authorization: Bearer <token>"
-     * ```
      */
     @Get()
     @UseGuards(AuthGuard('jwt'))
+    @ApiBearerAuth()
+    @ApiOperation({ summary: 'Search for members', description: 'Search members by name, email, or status notes' })
+    @ApiQuery({ name: 'q', required: false, example: 'john', description: 'Search query (name, notes)' })
+    @ApiQuery({ name: 'email', required: false, example: 'john.doe@example.com', description: 'Exact email match' })
+    @ApiQuery({ name: 'fuzzy', required: false, example: 'true', description: 'Enable fuzzy matching' })
+    @ApiQuery({ name: 'limit', required: false, example: '10', description: 'Max results (default: 20)' })
     async search(
         @Query('q') q?: string,
         @Query('email') email?: string,
