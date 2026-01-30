@@ -1,6 +1,6 @@
 # Migration: Local → Production
 
-How to deploy from local development to AWS production.
+How to deploy the Secure OpenSearch Discovery platform to AWS.
 
 ---
 
@@ -28,8 +28,9 @@ npx cdk deploy
 CDK deploys:
 - VPC with public/private subnets
 - ECS Fargate + ALB (builds & pushes container automatically)
-- OpenSearch domain
-- IAM roles for DynamoDB, OpenSearch, Bedrock
+- OpenSearch domain (members & locations indices)
+- RDS PostgreSQL (Locations data)
+- IAM roles for DynamoDB, OpenSearch, Bedrock, RDS
 
 ---
 
@@ -38,7 +39,7 @@ CDK deploys:
 Edit `infra/bin/infra.ts` for production sizing:
 
 ```typescript
-new MemberSearchStack(app, 'MemberSearchStack', {
+new SecureOpenSearchStack(app, 'SecureOpenSearchStack', {
     opensearchInstanceType: 'r6g.large.search',
     opensearchDataNodeCount: 2,
     cpu: 1024,
@@ -51,9 +52,18 @@ new MemberSearchStack(app, 'MemberSearchStack', {
 
 ## After Deployment
 
-1. **Create OpenSearch index** with mappings
-2. **Deploy Lambda indexer** for DynamoDB Streams
-3. **Backfill existing data** if any
+### Membership Vertical
+1. Create OpenSearch `members` index with mappings
+2. Deploy Lambda indexer for DynamoDB Streams
+3. Backfill existing member data
+
+### Locations Vertical
+1. Create OpenSearch `locations` index with mappings
+2. Run initial reindex from PostgreSQL: `POST /locations/reindex`
+
+### Agent Vertical
+1. Verify Bedrock model access in target region
+2. Test agent endpoint: `POST /agent/analyze`
 
 ---
 
@@ -74,7 +84,7 @@ npx cdk deploy --previous
 cd infra && npx cdk destroy
 ```
 
-> **Warning**: Deletes all resources including OpenSearch data.
+> **Warning**: Deletes all resources including OpenSearch data and RDS.
 
 ---
 
@@ -84,4 +94,7 @@ cd infra && npx cdk destroy
 |-------|----------|
 | CDK bootstrap error | `npx cdk bootstrap aws://<account>/<region>` |
 | Docker build fails | Ensure Docker daemon is running |
-| Fargate unhealthy | Check Grafana/Loki: `{app="membersearch-api"}` |
+| Fargate unhealthy | Check Grafana/Loki: `{app="secure-opensearch-api"}` |
+| Bedrock access denied | Verify IAM role has `bedrock:InvokeModel` |
+| RDS connection refused | Check security group allows ECS → RDS on 5432 |
+

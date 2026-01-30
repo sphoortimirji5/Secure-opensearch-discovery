@@ -1,6 +1,6 @@
 # Security
 
-Production-grade security posture for MemberSearch.
+Production-grade security posture for the Secure OpenSearch Discovery platform.
 
 ---
 
@@ -19,9 +19,10 @@ Production-grade security posture for MemberSearch.
 
 | Parameter | Type | Description |
 |-----------|------|-------------|
-| `/membersearch/prod/opensearch/endpoint` | SecureString | OpenSearch domain URL |
-| `/membersearch/prod/cognito/user-pool-id` | SecureString | Cognito user pool ID |
-| `/membersearch/prod/cognito/client-id` | SecureString | Cognito app client ID |
+| `/secure-opensearch/prod/opensearch/endpoint` | SecureString | OpenSearch domain URL |
+| `/secure-opensearch/prod/cognito/user-pool-id` | SecureString | Cognito user pool ID |
+| `/secure-opensearch/prod/cognito/client-id` | SecureString | Cognito app client ID |
+| `/secure-opensearch/prod/rds/connection-string` | SecureString | PostgreSQL connection URL |
 
 ### Access Pattern
 
@@ -75,6 +76,7 @@ async function getSecret(name: string): Promise<string> {
 |-----------|------------|-----|
 | DynamoDB | AES-256 | AWS-managed or CMK |
 | OpenSearch | AES-256 | AWS-managed or CMK |
+| RDS PostgreSQL | AES-256 | AWS-managed or CMK |
 | S3 (if used) | SSE-S3 or SSE-KMS | AWS-managed or CMK |
 | SQS DLQ | SSE-SQS | AWS-managed |
 | Loki (Logs) | HTTPS in transit | TLS 1.2+ |

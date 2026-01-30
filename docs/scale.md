@@ -1,6 +1,6 @@
 # Scale Analysis & Failure Modes
 
-Traffic analysis for MemberSearch with mitigation strategies.
+Traffic analysis and failure mode mitigation for the Secure OpenSearch Discovery platform (Membership, Locations, Agent verticals).
 
 ---
 
@@ -30,6 +30,9 @@ Traffic analysis for MemberSearch with mitigation strategies.
 | OpenSearch | Index corruption from bad deploys | Use index aliases, keep rollback version |
 | DynamoDB Streams | Poison records causing retry loops | Enable DLQ, set `bisectBatchOnFunctionError` |
 | JWT validation | Expired tokens causing 401 spikes | Client-side token refresh before expiry |
+| **Bedrock/LLM** | API timeout or rate limit | Circuit breaker (30s timeout, graceful fallback) |
+| **PostgreSQL (Locations)** | Connection timeout | SDK retries with backoff (`maxAttempts: 3`) |
+| **Grounding Service** | LLM audit fails | Default to `grounded: false`, log for review |
 
 ---
 
@@ -267,11 +270,13 @@ Before expecting traffic spikes:
 
 | Metric | Normal | Warning | Critical |
 |--------|--------|---------|----------|
-| `membersearch_query_duration_seconds` p99 | < 200ms | 200–500ms | > 500ms |
+| Search p99 latency | < 200ms | 200–500ms | > 500ms |
 | OpenSearch CPU | < 50% | 50–80% | > 80% |
 | DLQ message count | 0 | >= 1 | >= 20 |
 | Lambda concurrent executions | < 5 | 5–10 | > 20 |
 | Error count (5 min window) | 0 | 1–5 | > 10 |
+| **LLM circuit breaker state** | 0 (closed) | 2 (half-open) | 1 (open) |
+| **Agent analysis p99** | < 5s | 5–15s | > 15s |
 
 ---
 
